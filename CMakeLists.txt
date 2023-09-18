@@ -1,0 +1,12 @@
+cmake_minimum_required(VERSION 3.1)
+
+project(LC3_VM LANGUAGES C)
+
+FILE(GLOB SOURCE_FILES "src/*.c")
+
+FILE(GLOB HEADER_FILES "src/*.h")
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+
+
+add_executable(LC3_VM ${SOURCE_FILES} ${HEADER_FILES})

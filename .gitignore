@@ -1,2 +1,4 @@
-bin/
-build/
+bin-Debug/
+bin-Release/
+build-Debug/
+build-Release/

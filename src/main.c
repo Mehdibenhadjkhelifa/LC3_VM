@@ -1,5 +1,5 @@
 #include <stdio.h>
-
+#include <stdint.h>
 
 //defining memory for the LC3 VM
 #define MEMORY_MAX (1 << 16)
@@ -8,7 +8,7 @@ uint16_t memory[MEMORY_MAX];
 
 //defining CPU registers for the LC3 VM
 enum
-{
+{ 
     R_R0 = 0,
     R_R1,
     R_R2,

@@ -54,6 +54,64 @@ enum
 }; 
 
 
+//to be moved to a different file
+//this extends the value x to a 16-bit value that is signed
+uint16_t sign_extend(uint16_t x , int bit_count){
+    if((x >> (bit_count - 1)) & 1)
+        x|=(0xFFFF << bit_count);
+    return x;
+}
+
+//update the condition flag register with each operation based on the DR
+void update_flags(uint16_t r){
+    if(reg[r] == 0)
+        reg[R_COND] = FL_ZRO;
+    else if(reg[r] >> 15)
+        reg[R_COND] = FL_NEG;
+    else
+        reg[R_COND] = FL_POS;
+}
+
+
+//Add instruction layout :4-bit/3-bit/3-bit/1-bit/5-bit or 2-bit/3-bit
+// 4-bit op_code/ 3-bit DR (destination register)/
+// 3-bit register countaing first value/ 1-bit immediate mode flag
+// if immediate mode is 1 the rest 5-bits are to be treated as a direct value(with sign extending)
+// if immediate mode is 0  next 2-bits are unused and rest 3-bits are for the second register tha holds the second value
+void vm_add(uint16_t instr){
+    //register for the DR
+    uint16_t r0 = (instr >> 9) & 0x7;
+    //first operand (param)
+    uint16_t r1 = (instr >> 6) & 0x7;
+    //check for the immediate flag
+    uint16_t imm_flag = (instr >> 5) & 0x1;
+    if(imm_flag){
+        uint16_t imm5 = sign_extend(instr & 0x1F,5);
+        reg[r0] = reg[r1] + imm5;
+    }
+    else{
+        uint16_t r2 = instr & 0x7;
+        reg[r0] = reg[r1] + reg[r2];
+    }
+    update_flags(r0);
+}
+
+//LDI is better than LD because it can have 16-bit full adresses rather
+//than the 9-bits that are in the instruction param and this is useful for
+//farther addresses from the PC
+//LDI loads a value in memory to a register
+//the way it is layed out : 4-bit op_code/ 3-bit DR / 9-bit for the address 
+//near the pc that holds an address to the actual target value
+void vm_load_indirect(uint16_t instr){
+    // the DR register
+    uint16_t r0 = (instr >> 9) & 0x7;
+    // offset of memory address from PC
+    uint16_t pc_offset = sign_extend(instr & 0x1FF , 9);
+    //next line can be thought of as dereferencing a double pointer
+    reg[r0] = mem_read(mem_read(reg[R_PC] + pc_offset));
+    update_flags(r0);
+}
+
 int main(int argc,char* argv[]){
     if (argc < 2){
         //show usage string
@@ -80,7 +138,7 @@ int main(int argc,char* argv[]){
 
         switch(op){
             case OP_ADD:
-
+                vm_add(instr);
                 break;
             case OP_AND:
 
@@ -101,7 +159,7 @@ int main(int argc,char* argv[]){
 
                 break;
             case OP_LDI:
-
+                vm_load_indirect(instr);
                 break;
              case OP_LDR:
 

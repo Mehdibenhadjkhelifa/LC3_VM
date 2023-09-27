@@ -233,10 +233,22 @@ void vm_not(uint16_t instr){
 //this instruction stores the content of the source register
 //in the memory address pointed to by calculating program counter + pc offset
 void vm_store(uint16_t instr){
-    //DR
+    //SR
     uint16_t r0 = (instr >> 9) & 0x7;
     uint16_t pc_offset= sign_extend(instr & 0x1FF,9);
     mem_write(reg[R_PC] + pc_offset , r0);
+}
+
+//the store indirect instruction layout is:4-bit/3-bit/9-bit
+//4-bit opcode,3-bit SR,9 bit PCoffset to be sign extended
+//this instruction stores the content of the source register
+//in the memory address pointed to by the value in the 
+//memory address calculated by program counter + pc offset
+void vm_store_indirect(uint16_t instr){
+    //SR
+    uint16_t r0 = (instr >> 9) & 0x7;
+    uint16_t pc_offset = sign_extend(instr & 0x1FF,9);
+    mem_write(mem_read(reg[R_PC] + pc_offset),r0);
 }
 
 int main(int argc,char* argv[]){

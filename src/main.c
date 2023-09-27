@@ -161,6 +161,18 @@ void vm_jsr(uint16_t instr){
     }
 }
 
+//the load instructin layout is : 4-bit/3-bit/9-bit
+//4-bit for opcode , 3-bit for destination register(DR)
+//9-bit for program counter offset(PCoffset9)
+//this instruction load the destination register with the value read from
+//the memory address of the program counter + pc offset 
+void vm_load(uint16_t instr){
+    uint16_t r0 = (instr >> 9) & 0x7;
+    uint16_t pc_offset = sign_extend(instr & 0x1FF,9);
+    reg[r0] = mem_read(reg[R_PC] + pc_offset);
+    update_flags(r0);
+}
+
 //LDI is better than LD because it can have 16-bit full adresses rather
 //than the 9-bits that are in the instruction param and this is useful for
 //farther addresses from the PC

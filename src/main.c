@@ -179,6 +179,8 @@ void vm_load(uint16_t instr){
 //LDI loads a value in memory to a register
 //the way it is layed out : 4-bit op_code/ 3-bit DR / 9-bit for the address 
 //near the pc that holds an address to the actual target value
+//LDI loads the destination register with the value at the memory address pointed
+//to by the memory address located in the address of program counter + pc offset
 void vm_load_indirect(uint16_t instr){
     // the DR register
     uint16_t r0 = (instr >> 9) & 0x7;
@@ -189,6 +191,18 @@ void vm_load_indirect(uint16_t instr){
     update_flags(r0);
 }
 
+//LDR or load register instruction layout is : 4-bit/3-bit/3-bit/6-bit
+//4-bit opcode , 3-bit Destination register(DR),3-bit base register(BaseR),6-bit offset
+//to be sign-extended and added to the value held by the BaseR,then we load the DR value pointed to
+//by the address calculated with the last mentioned operation(BaseR + offset6)
+void vm_load_register(uint16_t instr){
+    //DR
+    uint16_t r0 = (instr >> 9) & 0x7;
+    uint16_t r1 = (instr >> 6) & 0x7;
+    uint16_t offset = sign_extend(instr & 0x3F,6);
+    reg[r0] = mem_read(reg[r1] + offset);
+    update_flags(r0);
+}
 
 
 

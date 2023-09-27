@@ -111,11 +111,21 @@ void vm_and(uint16_t instr){
     }
     else{
         uint16_t r2 = instr & 0x7;
-        reg[r0] = reg[r1] + reg[r2];
+        reg[r0] = reg[r1] & reg[r2];
     }
     update_flags(r0);
 }
-
+//the conditional branch layout is : 4-bit/1-bit/1-bit/1-bit/9-bit
+// first 4-bits are for the opcode and next 3-bits are n/z/p to be tested
+// for each one set we test it's counterpart from the conditional register
+//if n or z or p is set and it's counterpart then we offset the program counter
+//by the value of the rest sign-extended 9-bits (PCoffset9)
+void vm_br(uint16_t instr){
+    uint16_t pc_offset = sign_extend(instr & 0x1FF,9);
+    uint16_t cond_flag = (instr >> 9) & 0x7;
+    if(cond_flag & reg[R_COND])
+        reg[R_PC] += pc_offset;
+}
 //LDI is better than LD because it can have 16-bit full adresses rather
 //than the 9-bits that are in the instruction param and this is useful for
 //farther addresses from the PC

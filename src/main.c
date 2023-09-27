@@ -204,6 +204,15 @@ void vm_load_register(uint16_t instr){
     update_flags(r0);
 }
 
+// LEA known as load effective address layout is: 4-bit/3-bit/9-bit
+//4-bit opcode , 3-bit Destination register , 9-bit PCoffset9
+//this instruction loads the DR with program counter + pc offset(sign extended)
+void vm_lea(uint16_t instr){
+    uint16_t r0 = (instr >> 9) & 0x7;
+    uint16_t pc_offset = sign_extend(instr & 0x1F,9);
+    reg[r0] = reg[R_PC] + pc_offset;
+    update_flags(r0);
+}
 
 
 

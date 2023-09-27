@@ -115,7 +115,8 @@ void vm_and(uint16_t instr){
     }
     update_flags(r0);
 }
-//the conditional branch layout is : 4-bit/1-bit/1-bit/1-bit/9-bit
+
+//the conditional branch instruction layout is : 4-bit/1-bit/1-bit/1-bit/9-bit
 // first 4-bits are for the opcode and next 3-bits are n/z/p to be tested
 // for each one set we test it's counterpart from the conditional register
 //if n or z or p is set and it's counterpart then we offset the program counter
@@ -126,6 +127,18 @@ void vm_br(uint16_t instr){
     if(cond_flag & reg[R_COND])
         reg[R_PC] += pc_offset;
 }
+
+//the jump instruction layout is : 4-bit/3-bit/3-bit/6-bit
+//4 first bits are for opcode next 3 bits and last 6 bits are unused
+// second 3-bit section contains the register (baseR) which the program counter
+//will jump to unconditionnaly
+//this function is also called RET when the register specified is of 0x7 value (R7 register)
+void vm_jmp(uint16_t instr){
+    //get baseR
+    uint16_t r0=(instr >> 6) & 0x7;
+    reg[R_PC] = reg[r0];
+}
+
 //LDI is better than LD because it can have 16-bit full adresses rather
 //than the 9-bits that are in the instruction param and this is useful for
 //farther addresses from the PC

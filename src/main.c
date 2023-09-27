@@ -198,6 +198,7 @@ void vm_load_indirect(uint16_t instr){
 void vm_load_register(uint16_t instr){
     //DR
     uint16_t r0 = (instr >> 9) & 0x7;
+    //baseR
     uint16_t r1 = (instr >> 6) & 0x7;
     uint16_t offset = sign_extend(instr & 0x3F,6);
     reg[r0] = mem_read(reg[r1] + offset);
@@ -208,12 +209,24 @@ void vm_load_register(uint16_t instr){
 //4-bit opcode , 3-bit Destination register , 9-bit PCoffset9
 //this instruction loads the DR with program counter + pc offset(sign extended)
 void vm_lea(uint16_t instr){
+    //DR
     uint16_t r0 = (instr >> 9) & 0x7;
-    uint16_t pc_offset = sign_extend(instr & 0x1F,9);
+    uint16_t pc_offset = sign_extend(instr & 0x1FF,9);
     reg[r0] = reg[R_PC] + pc_offset;
     update_flags(r0);
 }
 
+//bitwise not instruction layout : 4-bit/3-bit/3-bit/1-bit/5-bit
+//4-bit opcode , 3-bit DR,3-bit SR, 1-bit and 5-bit are unused(set to 1 by default)
+//this instruction stores the bitwise complement content of SR in DR 
+void vm_not(uint16_t instr){
+    //DR
+    uint16_t r0 = (instr >> 9) & 0x7;
+    //SR
+    uint16_t r1 = (instr >> 6) & 0x7;
+    reg[r0] = ~r1;
+    update_flags(r0);
+}
 
 
 int main(int argc,char* argv[]){

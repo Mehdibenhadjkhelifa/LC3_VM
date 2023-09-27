@@ -73,7 +73,7 @@ void update_flags(uint16_t r){
 }
 
 
-//Add instruction layout :4-bit/3-bit/3-bit/1-bit/5-bit or 2-bit/3-bit
+//Add instruction layout :4-bit/3-bit/3-bit/1-bit/ (5-bit or 2-bit/3-bit)
 // 4-bit op_code/ 3-bit DR (destination register)/
 // 3-bit register countaing first value/ 1-bit immediate mode flag
 // if immediate mode is 1 the rest 5-bits are to be treated as a direct value(with sign extending)
@@ -96,7 +96,7 @@ void vm_add(uint16_t instr){
     update_flags(r0);
 }
 
-//And instruction layout : 4-bit/3-bit/3-bit/1-bit/5-bit or 2-bit/3-bit
+//And instruction layout : 4-bit/3-bit/3-bit/1-bit/ (5-bit or 2-bit/3-bit)
 //same as the Add instruction but the result is calculated by bitwise anding the two params
 void vm_and(uint16_t instr){
     //get DR
@@ -137,6 +137,28 @@ void vm_jmp(uint16_t instr){
     //get baseR
     uint16_t r0=(instr >> 6) & 0x7;
     reg[R_PC] = reg[r0];
+}
+
+//the jump register instruction layout is : 4-bit/1-bit/ (11-bit or 2-bit/3-bit/6-bit)
+//first 4 bits for opcode,next 1-bit if set(=1) we use the 11-bit by sign extending it and 
+//adding it to the program counter as an offset else we use the 3-bit section as a register 
+//and assign the program counter to the value hold by the specified register as an address
+//we hold for the program counter before any operation in the 8th register(R7) as a linkage 
+//to the calling routine. this instruction makes the program jump to a subroutine.
+void vm_jsr(uint16_t instr){
+    //save the program counter before change to recall it later
+    reg[R_R7] = reg[R_PC];
+    uint16_t offset_flag = (instr >> 11) & 0x1;
+    if(offset_flag){
+        //sign extending the offset value
+        uint16_t pc_offset = sign_extend(instr & 0x7FF,11);
+        reg[R_PC] += pc_offset;
+    }
+    else{
+        // obtaining baseR register
+        uint16_t r0 = (instr >> 6) & 0x7;
+        reg[R_PC] = reg[r0];
+    }
 }
 
 //LDI is better than LD because it can have 16-bit full adresses rather

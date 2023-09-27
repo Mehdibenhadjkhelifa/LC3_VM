@@ -96,6 +96,26 @@ void vm_add(uint16_t instr){
     update_flags(r0);
 }
 
+//And instruction layout : 4-bit/3-bit/3-bit/1-bit/5-bit or 2-bit/3-bit
+//same as the Add instruction but the result is calculated by bitwise anding the two params
+void vm_and(uint16_t instr){
+    //get DR
+    uint16_t r0 = (instr >> 9) & 0x7;
+    //get R1
+    uint16_t r1 = (instr >> 6) & 0x7;
+    //get immediate flag
+    uint16_t imm_flag =(instr >> 5) & 0x1;
+    if(imm_flag){
+        uint16_t imm5 = sign_extend(instr & 0x1F,5);
+        reg[r0] = reg[r1] & imm5;
+    }
+    else{
+        uint16_t r2 = instr & 0x7;
+        reg[r0] = reg[r1] + reg[r2];
+    }
+    update_flags(r0);
+}
+
 //LDI is better than LD because it can have 16-bit full adresses rather
 //than the 9-bits that are in the instruction param and this is useful for
 //farther addresses from the PC
@@ -111,6 +131,10 @@ void vm_load_indirect(uint16_t instr){
     reg[r0] = mem_read(mem_read(reg[R_PC] + pc_offset));
     update_flags(r0);
 }
+
+
+
+
 
 int main(int argc,char* argv[]){
     if (argc < 2){

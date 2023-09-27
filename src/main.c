@@ -236,7 +236,7 @@ void vm_store(uint16_t instr){
     //SR
     uint16_t r0 = (instr >> 9) & 0x7;
     uint16_t pc_offset= sign_extend(instr & 0x1FF,9);
-    mem_write(reg[R_PC] + pc_offset , r0);
+    mem_write(reg[R_PC] + pc_offset , reg[r0]);
 }
 
 //the store indirect instruction layout is:4-bit/3-bit/9-bit
@@ -248,7 +248,21 @@ void vm_store_indirect(uint16_t instr){
     //SR
     uint16_t r0 = (instr >> 9) & 0x7;
     uint16_t pc_offset = sign_extend(instr & 0x1FF,9);
-    mem_write(mem_read(reg[R_PC] + pc_offset),r0);
+    mem_write(mem_read(reg[R_PC] + pc_offset),reg[r0]);
+}
+
+//Store register instruction layout : 4-bit/3-bit/3-bit/6-bit
+//4-bit opcode,3-bit SR,3-bit baseR,6-bit offset
+//this instruction stores the content of the SR in the memory
+//address calculated by adding the offset (after sign extending it)
+// to the content of register baseR 
+void vm_store_register(uint16_t instr){
+    //SR
+    uint16_t r0 = (instr >> 9) & 0x7;
+    //baseR
+    uint16_t r1 = (instr >> 6) & 0x7;
+    uint16_t offset = sign_extend(instr & 0x3F,6);
+    mem_write(reg[r1] + offset,reg[r0]);
 }
 
 int main(int argc,char* argv[]){
@@ -280,50 +294,50 @@ int main(int argc,char* argv[]){
                 vm_add(instr);
                 break;
             case OP_AND:
-
+                vm_and(instr);
                 break;
             case OP_NOT:
-
+                vm_not(instr);
                 break;
             case OP_BR:
-
+                vm_br(instr);
                 break;
             case OP_JMP:
-
+                vm_jmp(instr);
                 break;
             case OP_JSR:
-
+                vm_jsr(instr);
                 break;
             case OP_LD:
-
+                vm_load(instr);
                 break;
             case OP_LDI:
                 vm_load_indirect(instr);
                 break;
-             case OP_LDR:
-
+            case OP_LDR:
+                vm_load_register(instr);
                 break;
             case OP_LEA:
-
+                vm_lea(instr);
                 break;
             case OP_ST:
-
+                vm_store(instr);
                 break;
             case OP_STI:
-
+                vm_store_indirect(instr);
                 break;
             case OP_STR:
-
+                vm_store_register(instr);
                 break;
             case OP_TRAP:
 
                 break;
             case OP_RES:
-
+                abort();
             case OP_RTI:
-
+                abort();
             default:
-
+                abort();
                 break;
         }
 

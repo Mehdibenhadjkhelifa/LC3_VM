@@ -228,6 +228,16 @@ void vm_not(uint16_t instr){
     update_flags(r0);
 }
 
+//the store instruction layout is:4-bit/3-bit/9-bit
+//4-bit opcode,3-bit SR,9 bit PCoffset to be sign extended
+//this instruction stores the content of the source register
+//in the memory address pointed to by calculating program counter + pc offset
+void vm_store(uint16_t instr){
+    //DR
+    uint16_t r0 = (instr >> 9) & 0x7;
+    uint16_t pc_offset= sign_extend(instr & 0x1FF,9);
+    mem_write(reg[R_PC] + pc_offset , r0);
+}
 
 int main(int argc,char* argv[]){
     if (argc < 2){

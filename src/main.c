@@ -5,6 +5,12 @@
 #define MEMORY_MAX (1 << 16)
 uint16_t memory[MEMORY_MAX];
 
+/* Memory map of the LC-3
+  0x0000 -> 0x00FF Trap Vector Table 
+  0x0100 -> 0x01FF Interrupt Vector Table
+  0x0200 -> 0x2FFF Operating system and Supervisor Stack
+  0x3000 -> 0xFDFF Available for user programs
+  0xFE00 -> 0xFFFF Device register addresses */
 
 //defining CPU registers for the LC3 VM
 enum
@@ -53,6 +59,15 @@ enum
     OP_TRAP    /* execute trap */
 }; 
 
+enum
+{
+    TRAP_GETC = 0x20,  /* get character from keyboard, not echoed onto the terminal */
+    TRAP_OUT = 0x21,   /* output a character */
+    TRAP_PUTS = 0x22,  /* output a word string */
+    TRAP_IN = 0x23,    /* get character from keyboard, echoed onto the terminal */
+    TRAP_PUTSP = 0x24, /* output a byte string */
+    TRAP_HALT = 0x25   /* halt the program */
+};
 
 //to be moved to a different file
 //this extends the value x to a 16-bit value that is signed
@@ -130,7 +145,7 @@ void vm_br(uint16_t instr){
 
 //the jump instruction layout is : 4-bit/3-bit/3-bit/6-bit
 //4 first bits are for opcode next 3 bits and last 6 bits are unused
-// second 3-bit section contains the register (baseR) which the program counter
+//second 3-bit section contains the register (baseR) which the program counter
 //will jump to unconditionnaly
 //this function is also called RET when the register specified is of 0x7 value (R7 register)
 void vm_jmp(uint16_t instr){
@@ -264,6 +279,14 @@ void vm_store_register(uint16_t instr){
     uint16_t offset = sign_extend(instr & 0x3F,6);
     mem_write(reg[r1] + offset,reg[r0]);
 }
+
+void vm_trap(uint16_t instr){
+    reg[R_R7] = reg[R_PC];
+    switch(instr & 0xFF){
+
+    }
+}
+
 
 int main(int argc,char* argv[]){
     if (argc < 2){

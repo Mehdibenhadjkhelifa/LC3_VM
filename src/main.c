@@ -385,31 +385,6 @@ void vm_store_register(uint16_t instr){
     mem_write(reg[r1] + offset,reg[r0]);
 }
 
-void vm_trap(uint16_t instr,char* running){
-    reg[R_R7] = reg[R_PC];
-    switch(instr & 0xFF){
-        case TRAP_GETC:
-            vm_trap_getc();
-            break;
-        case TRAP_OUT:
-            vm_trap_out();
-            break;
-        case TRAP_PUTS:
-            vm_trap_puts();
-            break;
-        case TRAP_IN:
-            vm_trap_in();
-            break;
-        case TRAP_PUTSP:
-            vm_trap_puts();
-            break;
-        case TRAP_HALT:
-            vm_trap_halt();
-            *running = 0;
-            break;
-    }
-}
-
 //reads a single character from the console
 //and store it in R0 with 8 most significant bits of R0 are cleared
 void vm_trap_getc(){
@@ -427,11 +402,14 @@ void vm_trap_out(){
 //puts display a whole null terminated string into the console
 //where the string is store in the address hold by register R0
 void vm_trap_puts(){
+   /* one char per word */
     uint16_t* c = memory + reg[R_R0];
-    while(*c)
-        putc((char)*c++,stdout);//could be an error
+    while (*c)
+    {
+        putc((char)*c, stdout);
+        ++c;
+    }
     fflush(stdout);
-    
 }
 
 //prompts the user by displaying a console message to enter a char
@@ -450,17 +428,18 @@ void vm_trap_in(){
 //from the address hold by the register R0 with each memory address
 //holding two characters 8-bit(second char)/8-bit(first char)
 //if string has odd letters second char with have 0x00 value
-void vm_trap_puts(){
-    uint16_t* address = memory + reg[R_R0];
-    while(*address){
-        char c1 = *address & 0xFF;
-        char c2 = *address >> 8;
-        putc(c1,stdout);
-        if(c2)
-            putc(c2,stdout);
-        else
-            break;
-        address++;
+void vm_trap_putsp(){
+    /* one char per byte (two bytes per word)
+       here we need to swap back to
+       big endian format */
+    uint16_t* c = memory + reg[R_R0];
+    while (*c)
+    {
+        char char1 = (*c) & 0xFF;
+        putc(char1, stdout);
+        char char2 = (*c) >> 8;
+        if (char2) putc(char2, stdout);
+        ++c;
     }
     fflush(stdout);
 }
@@ -468,6 +447,32 @@ void vm_trap_halt(){
     puts("HALT");
     fflush(stdout);
 }
+
+void vm_trap(uint16_t instr,char* running){
+    reg[R_R7] = reg[R_PC];
+    switch(instr & 0xFF){
+        case TRAP_GETC:
+            vm_trap_getc();
+            break;
+        case TRAP_OUT:
+            vm_trap_out();
+            break;
+        case TRAP_PUTS:
+            vm_trap_puts();
+            break;
+        case TRAP_IN:
+            vm_trap_in();
+            break;
+        case TRAP_PUTSP:
+            vm_trap_putsp();
+            break;
+        case TRAP_HALT:
+            vm_trap_halt();
+            *running = 0;
+            break;
+    }
+}
+
 //this function swaps the 8 least significant bits with the
 //8 most significant bits because in little indian(which is what modern computers target)
 //the first byte is the least significant digit and big-indian(what LC-3 targets) which is it's the reverse

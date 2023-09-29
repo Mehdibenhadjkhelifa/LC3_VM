@@ -363,6 +363,37 @@ void vm_trap_halt(){
     puts("HALT");
     fflush(stdout);
 }
+//this function swaps the 8 least significant bits with the
+//8 most significant bits because in little indian(which is what modern computers target)
+//the first byte is the least significant digit and big-indian(what LC-3 targets) which is it's the reverse
+uint16_t swap16(uint16_t x){
+    return (x << 8) | (x >> 8);
+}
+
+void read_image_file(FILE* file){
+    /* the origin tells us where in memory to place the image */
+    uint16_t origin;
+    fread(&origin,sizeof(origin),1,file);
+    origin = swap16(origin);
+    /* we know the maximum file size so we only need one fread */
+    uint16_t max_read = MEMORY_MAX - origin;
+    //get the memory where the binary of the program should be copied to
+    uint16_t* p = memory + origin;
+    //get how many 16-bits have been read and copied to p
+    size_t read =fread(p,sizeof(uint16_t),max_read,file);
+    while(read-- > 0){
+        *p = swap16(*p);
+        ++p;
+    }
+}
+int read_image(const char* image_path){
+    FILE* file = fopen(image_path,"rb");
+    if(!file)
+        return 0;
+    read_image_file(file);
+    fclose(file);
+    return 1;
+}
 
 int main(int argc,char* argv[]){
     if (argc < 2){

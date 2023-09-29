@@ -69,6 +69,18 @@ enum
     TRAP_HALT = 0x25   /* halt the program */
 };
 
+//MMR or Memory Mapped Registers are commonly used to interact with special hardware devices
+//these are unlike normal registers they have a predifined memory location
+//MMR make memory access harder,need setters and getters i.e if memory is read
+//from KSBR the getter will check the keyboard and update both locations
+//MR_KBSR get the status of keyboard(bit-15 is set when key is pressed)
+//MR_KBDR get the key that is pressed (bits 7-0)
+enum
+{
+    MR_KBSR = 0xFE00, /* keyboard status */
+    MR_KBDR = 0xFE02  /* keyboard data */
+};
+
 //to be moved to a different file
 //this extends the value x to a 16-bit value that is signed
 uint16_t sign_extend(uint16_t x , int bit_count){
@@ -87,6 +99,24 @@ void update_flags(uint16_t r){
         reg[R_COND] = FL_POS;
 }
 
+//write to a specific memory address
+void mem_write(uint16_t address,uint16_t val){
+    memory[address] = val;
+}
+
+//reads from a specific memory address and handles
+//the read to MMRs
+uint16_t mem_read(uint16_t address){
+    if(address == MR_KBSR){
+        if(check_key()){
+            memory[MR_KBSR] = (1 << 15);
+            memory[MR_KBDR] = getchar();
+        }
+        else
+            memory[MR_KBSR] = 0;
+    }
+    return memory[address];
+}
 
 //Add instruction layout :4-bit/3-bit/3-bit/1-bit/ (5-bit or 2-bit/3-bit)
 // 4-bit op_code/ 3-bit DR (destination register)/

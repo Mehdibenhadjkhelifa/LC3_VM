@@ -1,6 +1,11 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <signal.h>
+#ifdef _WIN32
+/* windows only */
+#include <Windows.h>
+#include <conio.h>
+#else
 /* unix only */
 #include <stdlib.h>
 #include <unistd.h>
@@ -9,6 +14,7 @@
 #include <sys/types.h>
 #include <sys/termios.h>
 #include <sys/mman.h>
+#endif
 //defining memory for the LC3 VM
 #define MEMORY_MAX (1 << 16)
 uint16_t memory[MEMORY_MAX];
@@ -89,6 +95,33 @@ enum
     MR_KBDR = 0xFE02  /* keyboard data */
 };
 
+// Handling input buffering from terminal (platform specific)
+#ifdef _WIN32
+HANDLE hStdin = INVALID_HANDLE_VALUE;
+DWORD fdwMode, fdwOldMode;
+
+void disable_input_buffering()
+{
+    hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    GetConsoleMode(hStdin, &fdwOldMode); /* save old mode */
+    fdwMode = fdwOldMode
+            ^ ENABLE_ECHO_INPUT  /* no input echo */
+            ^ ENABLE_LINE_INPUT; /* return when one or
+                                    more characters are available */
+    SetConsoleMode(hStdin, fdwMode); /* set new mode */
+    FlushConsoleInputBuffer(hStdin); /* clear buffer */
+}
+
+void restore_input_buffering()
+{
+    SetConsoleMode(hStdin, fdwOldMode);
+}
+
+uint16_t check_key()
+{
+    return WaitForSingleObject(hStdin, 1000) == WAIT_OBJECT_0 && _kbhit();
+}
+#else
 struct termios original_tio;
 
 void disable_input_buffering()
@@ -115,6 +148,7 @@ uint16_t check_key()
     timeout.tv_usec = 0;
     return select(1, &readfds, NULL, NULL, &timeout) != 0;
 }
+#endif
 
 void handle_interrupt(int signal)
 {

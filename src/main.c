@@ -1,6 +1,20 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <signal.h>
+#ifdef _WIN32
+/* windows only */
+#include <Windows.h>
+#include <conio.h>
+#else
+/* unix only */
 #include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/termios.h>
+#include <sys/mman.h>
+#endif
 //defining memory for the LC3 VM
 #define MEMORY_MAX (1 << 16)
 uint16_t memory[MEMORY_MAX];
@@ -69,6 +83,79 @@ enum
     TRAP_HALT = 0x25   /* halt the program */
 };
 
+//MMR or Memory Mapped Registers are commonly used to interact with special hardware devices
+//these are unlike normal registers they have a predifined memory location
+//MMR make memory access harder,need setters and getters i.e if memory is read
+//from KSBR the getter will check the keyboard and update both locations
+//MR_KBSR get the status of keyboard(bit-15 is set when key is pressed)
+//MR_KBDR get the key that is pressed (bits 7-0)
+enum
+{
+    MR_KBSR = 0xFE00, /* keyboard status */
+    MR_KBDR = 0xFE02  /* keyboard data */
+};
+
+// Handling input buffering from terminal (platform specific)
+#ifdef _WIN32
+HANDLE hStdin = INVALID_HANDLE_VALUE;
+DWORD fdwMode, fdwOldMode;
+
+void disable_input_buffering()
+{
+    hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    GetConsoleMode(hStdin, &fdwOldMode); /* save old mode */
+    fdwMode = fdwOldMode
+            ^ ENABLE_ECHO_INPUT  /* no input echo */
+            ^ ENABLE_LINE_INPUT; /* return when one or
+                                    more characters are available */
+    SetConsoleMode(hStdin, fdwMode); /* set new mode */
+    FlushConsoleInputBuffer(hStdin); /* clear buffer */
+}
+
+void restore_input_buffering()
+{
+    SetConsoleMode(hStdin, fdwOldMode);
+}
+
+uint16_t check_key()
+{
+    return WaitForSingleObject(hStdin, 1000) == WAIT_OBJECT_0 && _kbhit();
+}
+#else
+struct termios original_tio;
+
+void disable_input_buffering()
+{
+    tcgetattr(STDIN_FILENO, &original_tio);
+    struct termios new_tio = original_tio;
+    new_tio.c_lflag &= ~ICANON & ~ECHO;
+    tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);
+}
+
+void restore_input_buffering()
+{
+    tcsetattr(STDIN_FILENO, TCSANOW, &original_tio);
+}
+
+uint16_t check_key()
+{
+    fd_set readfds;
+    FD_ZERO(&readfds);
+    FD_SET(STDIN_FILENO, &readfds);
+
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 0;
+    return select(1, &readfds, NULL, NULL, &timeout) != 0;
+}
+#endif
+
+void handle_interrupt(int signal)
+{
+    restore_input_buffering();
+    printf("\n");
+    exit(-2);
+}
 //to be moved to a different file
 //this extends the value x to a 16-bit value that is signed
 uint16_t sign_extend(uint16_t x , int bit_count){
@@ -87,6 +174,24 @@ void update_flags(uint16_t r){
         reg[R_COND] = FL_POS;
 }
 
+//write to a specific memory address
+void mem_write(uint16_t address,uint16_t val){
+    memory[address] = val;
+}
+
+//reads from a specific memory address and handles
+//the read to MMRs
+uint16_t mem_read(uint16_t address){
+    if(address == MR_KBSR){
+        if(check_key()){
+            memory[MR_KBSR] = (1 << 15);
+            memory[MR_KBDR] = getchar();
+        }
+        else
+            memory[MR_KBSR] = 0;
+    }
+    return memory[address];
+}
 
 //Add instruction layout :4-bit/3-bit/3-bit/1-bit/ (5-bit or 2-bit/3-bit)
 // 4-bit op_code/ 3-bit DR (destination register)/
@@ -280,31 +385,6 @@ void vm_store_register(uint16_t instr){
     mem_write(reg[r1] + offset,reg[r0]);
 }
 
-void vm_trap(uint16_t instr,char* running){
-    reg[R_R7] = reg[R_PC];
-    switch(instr & 0xFF){
-        case TRAP_GETC:
-            vm_trap_getc();
-            break;
-        case TRAP_OUT:
-            vm_trap_out();
-            break;
-        case TRAP_PUTS:
-            vm_trap_puts();
-            break;
-        case TRAP_IN:
-            vm_trap_in();
-            break;
-        case TRAP_PUTSP:
-            vm_trap_puts();
-            break;
-        case TRAP_HALT:
-            vm_trap_halt();
-            *running = 0;
-            break;
-    }
-}
-
 //reads a single character from the console
 //and store it in R0 with 8 most significant bits of R0 are cleared
 void vm_trap_getc(){
@@ -364,6 +444,31 @@ void vm_trap_halt(){
     fflush(stdout);
 }
 
+void vm_trap(uint16_t instr,char* running){
+    reg[R_R7] = reg[R_PC];
+    switch(instr & 0xFF){
+        case TRAP_GETC:
+            vm_trap_getc();
+            break;
+        case TRAP_OUT:
+            vm_trap_out();
+            break;
+        case TRAP_PUTS:
+            vm_trap_puts();
+            break;
+        case TRAP_IN:
+            vm_trap_in();
+            break;
+        case TRAP_PUTSP:
+            vm_trap_putsp();
+            break;
+        case TRAP_HALT:
+            vm_trap_halt();
+            *running = 0;
+            break;
+    }
+}
+
 //this function swaps the 8 least significant bits with the
 //8 most significant bits because in little indian(which is what modern computers target)
 //the first byte is the least significant digit and big-indian(what LC-3 targets) which is it's the reverse
@@ -408,6 +513,10 @@ int main(int argc,char* argv[]){
             exit(1);
         }
     }
+    //this sets up the console as we like 
+    signal(SIGINT, handle_interrupt);
+    disable_input_buffering();
+
     //since exactly one condition flag should be set at any given time, set the Z flag 
     reg[R_COND] = FL_ZRO;
     /* set the PC to starting position 
@@ -473,6 +582,7 @@ int main(int argc,char* argv[]){
         }
 
     }
-
+    //this restores the terminal settings back to normal
+    restore_input_buffering();
 	return 0;
 }

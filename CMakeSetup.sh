@@ -31,6 +31,24 @@ then
         else
             echo "No binary available to debug"
         fi
+    elif [ $1 = "run" ]
+    then
+        if [ $# -gt 1 ]
+        then
+            if [ $2 = "rogue" ]
+            then
+                ./bin-Release/LC3_VM ./tests/rogue.obj ||
+                echo "build Release to run program more optimally"
+            elif [ $2 = "2048" ]
+            then
+                ./bin-Release/LC3_VM ./tests/2048.obj ||
+                echo "build Release to run program more optimally"
+            else
+                echo "Not a viable second argument,enter 2048/rogue as second arg"
+            fi
+        else
+            echo "select 2048 or rogue as second argument to run the desired program"
+        fi
     else
         echo "wrong argument passed" 
     fi 

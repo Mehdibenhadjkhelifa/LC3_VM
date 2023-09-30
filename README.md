@@ -1,8 +1,9 @@
 # LC3_VM
-creating a LC3 virtual machine as a learning process.
 
 **LC3** : or 'little computer 3' features a RISC (Reduced instruction set computer) 
 designed to simplify the individual instructions given to the computer to accomplish tasks.
+
+**PROJECT_STATUS** : *Completed*.  May add multithreading to support handled multiple LC3-VMs at once.
 
 ## Setup
 
@@ -27,6 +28,10 @@ designed to simplify the individual instructions given to the computer to accomp
  2- debug the built binaries using gdb by using this command : `./CMakeSetup.sh debug` 
  
  3- remove the project and binary simply with the following command : `./CMakeSetup.sh remove`
+
+ 4-run the binary (Need to build Release) with the command :`./CMakeSetup.sh run "test"`
+
+ with test being either rogue or 2048
 
  **FOR WINDOWS**:
 

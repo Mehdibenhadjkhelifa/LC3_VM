@@ -1,3 +1,5 @@
+#ifndef _VM_H
+#define _VM_H
 #include <stdbool.h>
 
 //Declaring VM Functions
@@ -106,3 +108,4 @@ void vm_trap_in();
 void vm_trap_putsp();
 //Halts the program i.e stops the program from running completly
 void vm_trap_halt();
+#endif

@@ -252,7 +252,7 @@ void vm_trap_puts(){
 
 void vm_trap_in(){
     printf("Enter a Character : ");
-    char c = getchar();
+    char c =(char)getchar();
     putc(c,stdout);
     fflush(stdout);
     reg[R_R0] = (uint16_t)c;

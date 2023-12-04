@@ -34,7 +34,7 @@ void disable_input_buffering()
 {
     tcgetattr(STDIN_FILENO, &original_tio);
     struct termios new_tio = original_tio;
-    new_tio.c_lflag &= ~ICANON & ~ECHO;
+    new_tio.c_lflag &=(tcflag_t)~ICANON & (tcflag_t)~ECHO;
     tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);
 }
 
@@ -86,7 +86,7 @@ uint16_t mem_read(uint16_t address){
     if(address == MR_KBSR){
         if(check_key()){
             memory[MR_KBSR] = (1 << 15);
-            memory[MR_KBDR] = getchar();
+            memory[MR_KBDR] = (uint16_t)getchar();
         }
         else
             memory[MR_KBSR] = 0;
@@ -95,7 +95,7 @@ uint16_t mem_read(uint16_t address){
 }
 
 uint16_t swap16(uint16_t x){
-    return (x << 8) | (x >> 8);
+    return (uint16_t)(x << 8) | (x >> 8);
 }
 
 void read_image_file(FILE* file){
@@ -104,7 +104,7 @@ void read_image_file(FILE* file){
     fread(&origin,sizeof(origin),1,file);
     origin = swap16(origin);
     /* we know the maximum file size so we only need one fread */
-    uint16_t max_read = MEMORY_MAX - origin;
+    uint16_t max_read =(uint16_t)MEMORY_MAX - origin;
     //get the memory where the binary of the program should be copied to
     uint16_t* p = memory + origin;
     //get how many 16-bits have been read and copied to p

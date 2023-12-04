@@ -1,7 +1,7 @@
 #ifndef _VM_H
 #define _VM_H
 #include <stdbool.h>
-
+#include <stdint.h>
 //Declaring VM Functions
 bool vm_init(int argc,char** argv);
 void vm_run(bool* running);

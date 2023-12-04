@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -16,7 +15,7 @@ int main(int argc,char* argv[]){
         return -1;
     bool running = true;
     vm_run(&running);
-    if(!vm_shutdown());
+    if(!vm_shutdown())
 	    return -2;
     return 0;
 }

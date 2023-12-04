@@ -15,7 +15,7 @@
 #include <sys/mman.h>
 #endif
 #include <stdint.h>
-
+#include <stdio.h>
 /* Memory map of the LC-3
   0x0000 -> 0x00FF Trap Vector Table 
   0x0100 -> 0x01FF Interrupt Vector Table

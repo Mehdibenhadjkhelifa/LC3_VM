@@ -98,6 +98,7 @@ bool vm_shutdown(){
     //this restores the terminal settings back to normal
     restore_input_buffering();
     printf("VM Shutdown succesfully !\n");
+    return true;
 }
 
 void vm_add(uint16_t instr){
